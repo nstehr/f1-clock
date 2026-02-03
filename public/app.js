@@ -33,6 +33,7 @@ const TIRE_COLORS = {
 
 // Fastest lap highlight tracking
 let fastestLapShownAt = -1;
+let lastLoadedHour = new Date().getHours();
 
 // Weather elements
 const localTempEl = document.querySelector('#weather-local .weather-temp');
@@ -50,6 +51,7 @@ async function loadRace() {
   titleEl.textContent = raceData.title;
   lastShownEventIdx = -1;
   fastestLapShownAt = -1;
+  lastLoadedHour = new Date().getHours();
   inferredStartPositions = findInferredStartPositions();
   computeTransform();
   loadRaceWeather();
@@ -678,7 +680,9 @@ function render() {
   const retired = driverStates.filter(d => d.retired).sort((a, b) => a.racePos - b.racePos);
 
   let html = '';
-  for (const ds of active) {
+  for (let i = 0; i < active.length; i++) {
+    const ds = active[i];
+    const displayPos = i + 1; // Use sequential position to avoid duplicates
     // Pit stop count up to current time
     let pitBadge = '';
     const pits = raceData.pitStops && raceData.pitStops[ds.dn];
@@ -698,7 +702,7 @@ function render() {
       tireBadge = `<span class="lb-tire" style="background:${TIRE_COLORS[compound]}"></span>`;
     }
     html += `<div class="lb-row">
-      <span class="lb-pos">${ds.racePos}</span>
+      <span class="lb-pos">${displayPos}</span>
       <span class="lb-dot" style="background:${ds.info.color}"></span>
       <span class="lb-name">${ds.info.code}</span>
       ${tireBadge}${flBadge}${pitBadge}
@@ -726,4 +730,13 @@ loadRace();
 loadLocalWeather();
 // Refresh local weather every 15 minutes
 setInterval(loadLocalWeather, 15 * 60 * 1000);
+// Reload race when tab becomes visible if hour changed (rAF is throttled in background)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && new Date().getHours() !== lastLoadedHour) {
+    raceFinished = false;
+    podiumAlpha = 0;
+    finishAnimT = 0;
+    loadRace();
+  }
+});
 render();

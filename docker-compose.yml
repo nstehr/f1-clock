@@ -1,0 +1,11 @@
+services:
+  f1-clock:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+    environment:
+      - F1_CACHE_DB=/data/f1cache.db
+      # - WEATHER_CITY=Toronto

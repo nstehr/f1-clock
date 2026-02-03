@@ -1,0 +1,6 @@
+node_modules
+f1cache.db
+.git
+.gitignore
+.claude
+*.md

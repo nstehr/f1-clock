@@ -1,7 +1,8 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 
-const db = new Database(path.join(__dirname, '..', 'f1cache.db'));
+const dbPath = process.env.F1_CACHE_DB || path.join(__dirname, '..', 'f1cache.db');
+const db = new Database(dbPath);
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS races (

@@ -158,6 +158,29 @@ body {
   border: 1px solid rgba(0, 0, 0, 0.3);
 }
 
+#tire-legend {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 16px;
+  border-top: 1px solid #222;
+  font-size: 7px;
+  color: #666;
+}
+
+.tire-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tire-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+}
+
 /* Progress bar */
 #progress-bar {
   position: fixed;
