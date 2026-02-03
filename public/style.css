@@ -1,0 +1,338 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #0a0a0a;
+  color: #e0e0e0;
+  font-family: 'Press Start 2P', monospace;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#container {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  height: 100vh;
+}
+
+#track-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+#track {
+  width: 100%;
+  height: 100%;
+}
+
+#sidebar {
+  border-left: 2px solid #222;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#race-info {
+  padding: 16px;
+  border-bottom: 2px solid #222;
+  text-align: center;
+}
+
+#wall-clock {
+  font-size: 28px;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+#race-title {
+  font-size: 10px;
+  color: #aaa;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+#race-lap {
+  font-size: 10px;
+  color: #888;
+}
+
+#weather {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 2px solid #222;
+  font-size: 8px;
+}
+
+#weather-local, #weather-race {
+  padding: 10px 12px;
+  text-align: center;
+}
+
+#weather-local {
+  border-right: 1px solid #222;
+}
+
+.weather-label {
+  color: #666;
+  margin-bottom: 6px;
+  font-size: 7px;
+  letter-spacing: 1px;
+}
+
+.weather-temp {
+  color: #fff;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.weather-cond {
+  color: #888;
+  font-size: 7px;
+}
+
+#leaderboard {
+  padding: 12px 16px;
+  overflow-y: auto;
+  flex: 1;
+  font-size: 9px;
+  line-height: 2.4;
+}
+
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.lb-pos {
+  width: 24px;
+  text-align: right;
+  color: #888;
+}
+
+.lb-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.lb-name {
+  flex: 1;
+}
+
+.lb-retired {
+  opacity: 0.35;
+}
+
+.lb-dnf {
+  color: #ff3333;
+  font-size: 7px;
+  opacity: 1;
+}
+
+.lb-pit {
+  color: #666;
+  font-size: 6px;
+  margin-left: auto;
+}
+
+.lb-fl {
+  color: #b44dff;
+  font-size: 6px;
+  margin-left: auto;
+}
+
+.lb-tire {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-left: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+/* Progress bar */
+#progress-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: #1a1a1a;
+  z-index: 5;
+}
+
+#progress-fill {
+  height: 100%;
+  width: 0%;
+  background: #e10600;
+  transition: width 0.5s linear;
+}
+
+/* Event banner */
+#event-banner {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  border: 2px solid;
+  transition: opacity 0.5s;
+  z-index: 10;
+  text-align: center;
+  max-width: 80vw;
+}
+
+#event-banner.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#event-banner.flag-yellow {
+  background: #332b00;
+  color: #ffd600;
+  border-color: #ffd600;
+}
+
+#event-banner.flag-red {
+  background: #330000;
+  color: #ff3333;
+  border-color: #ff3333;
+}
+
+#event-banner.flag-green {
+  background: #003300;
+  color: #33ff33;
+  border-color: #33ff33;
+}
+
+#event-banner.flag-safety {
+  background: #1a1a00;
+  color: #ffaa00;
+  border-color: #ffaa00;
+}
+
+#event-banner.flag-default {
+  background: #1a1a1a;
+  color: #ccc;
+  border-color: #666;
+}
+
+/* Tablet */
+@media (max-width: 900px) {
+  #container {
+    grid-template-columns: 1fr 220px;
+  }
+
+  #wall-clock {
+    font-size: 22px;
+  }
+
+  #race-info {
+    padding: 12px;
+  }
+
+  #leaderboard {
+    font-size: 8px;
+    padding: 10px 12px;
+    line-height: 2.2;
+  }
+
+  .weather-temp {
+    font-size: 12px;
+  }
+
+  #event-banner {
+    font-size: 8px;
+    padding: 10px 16px;
+  }
+}
+
+/* Phone */
+@media (max-width: 600px) {
+  body {
+    overflow: auto;
+  }
+
+  #container {
+    grid-template-columns: 1fr;
+    grid-template-rows: 50vh auto;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  #track-panel {
+    padding: 8px;
+    min-height: 50vh;
+  }
+
+  #sidebar {
+    border-left: none;
+    border-top: 2px solid #222;
+    overflow: visible;
+  }
+
+  #race-info {
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  #wall-clock {
+    font-size: 20px;
+    margin-bottom: 0;
+  }
+
+  #race-title {
+    font-size: 8px;
+    margin-bottom: 0;
+  }
+
+  #race-lap {
+    font-size: 8px;
+  }
+
+  #weather {
+    font-size: 7px;
+  }
+
+  .weather-temp {
+    font-size: 11px;
+  }
+
+  #leaderboard {
+    font-size: 8px;
+    padding: 8px 12px;
+    line-height: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 12px;
+    overflow-y: visible;
+  }
+
+  .lb-row {
+    gap: 6px;
+  }
+
+  .lb-pos {
+    width: 18px;
+  }
+
+  #event-banner {
+    font-size: 7px;
+    padding: 8px 12px;
+    bottom: 16px;
+  }
+}

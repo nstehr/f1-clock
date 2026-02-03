@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>F1 Clock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="container">
+    <div id="track-panel">
+      <canvas id="track"></canvas>
+    </div>
+    <div id="sidebar">
+      <div id="race-info">
+        <div id="wall-clock">--:--</div>
+        <div id="race-title">Loading...</div>
+        <div id="race-lap">LAP 0 / 0</div>
+      </div>
+      <div id="weather">
+        <div id="weather-local">
+          <div class="weather-label">LOCAL</div>
+          <div class="weather-temp">--</div>
+          <div class="weather-cond">--</div>
+        </div>
+        <div id="weather-race">
+          <div class="weather-label">RACE DAY</div>
+          <div class="weather-temp">--</div>
+          <div class="weather-cond">--</div>
+        </div>
+      </div>
+      <div id="leaderboard"></div>
+    </div>
+  </div>
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+  <div id="event-banner" class="hidden"></div>
+  <script src="app.js"></script>
+</body>
+</html>
