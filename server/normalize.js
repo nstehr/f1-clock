@@ -1,5 +1,7 @@
-// Map the race into 0-3300s of each hour, leaving 5 min for the podium display
-const RACE_DURATION_S = 3300;
+// Max playback window: 3300s (55 min), leaving 5 min for the podium display
+const MAX_RACE_DURATION_S = 3300;
+// Reference GP duration: 90 minutes. Shorter races (sprints) get proportionally shorter playback.
+const REFERENCE_RACE_MS = 5400000;
 
 // Phase 1: Determine time bounds from lap data (actual race start to finish).
 // Falls back to position data if lap data is insufficient.
@@ -52,7 +54,10 @@ function initRaceContext(positionData, drivers, lapsData, raceControlData, stint
     if (raceStart === Infinity) throw new Error('No timing data available');
   }
 
-  return { raceStart, raceEnd, positionData, drivers, lapsData, raceControlData, stintsData, session };
+  const raceDurationMs = raceEnd - raceStart;
+  const effectiveRaceDurationS = Math.min(MAX_RACE_DURATION_S, Math.round((raceDurationMs / REFERENCE_RACE_MS) * MAX_RACE_DURATION_S));
+
+  return { raceStart, raceEnd, effectiveRaceDurationS, positionData, drivers, lapsData, raceControlData, stintsData, session };
 }
 
 // Update time bounds with another driver's data
@@ -66,11 +71,11 @@ function expandTimeBounds(ctx, locationData) {
 }
 
 // Phase 2: Normalize one driver's location data into downsampled points.
-function normalizeDriverLocations(rawData, raceStart, raceDuration) {
+function normalizeDriverLocations(rawData, raceStart, raceDuration, effectiveRaceDurationS) {
   const points = [];
   for (const d of rawData) {
     if (d.x === 0 && d.y === 0) continue;
-    const t = ((new Date(d.date).getTime() - raceStart) / raceDuration) * RACE_DURATION_S;
+    const t = ((new Date(d.date).getTime() - raceStart) / raceDuration) * effectiveRaceDurationS;
     points.push({ t, x: d.x, y: d.y });
   }
   points.sort((a, b) => a.t - b.t);
@@ -90,7 +95,7 @@ function normalizeDriverLocations(rawData, raceStart, raceDuration) {
 }
 
 // Phase 3: Build track outline from one driver's raw data using lap boundaries.
-function buildTrackOutline(outlineDriverRawData, lapsData, outlineDriverNum, raceStart, raceDuration, driverLocations) {
+function buildTrackOutline(outlineDriverRawData, lapsData, outlineDriverNum, raceStart, raceDuration, driverLocations, effectiveRaceDurationS) {
   const lapsByDriver = {};
   for (const lap of lapsData) {
     const dn = lap.driver_number;
@@ -165,7 +170,7 @@ function buildTrackOutline(outlineDriverRawData, lapsData, outlineDriverNum, rac
 
   const leaderLaps = outlineLaps.map(l => {
     if (!l.date_start) return null;
-    const t = ((new Date(l.date_start).getTime() - raceStart) / raceDuration) * RACE_DURATION_S;
+    const t = ((new Date(l.date_start).getTime() - raceStart) / raceDuration) * effectiveRaceDurationS;
     return { t, lap: l.lap_number };
   }).filter(Boolean);
 
@@ -204,7 +209,7 @@ function buildTrackOutline(outlineDriverRawData, lapsData, outlineDriverNum, rac
 
 // Phase 4: Finalize — build positions, events, metadata.
 function finalizeRaceData(ctx, driverLocations, trackOutline, trackSectors, totalLaps, leaderLaps) {
-  const { raceStart, raceEnd, positionData, drivers, raceControlData, stintsData, session } = ctx;
+  const { raceStart, raceEnd, effectiveRaceDurationS, positionData, drivers, raceControlData, stintsData, session } = ctx;
   const raceDuration = raceEnd - raceStart;
 
   const driverMap = {};
@@ -222,8 +227,8 @@ function finalizeRaceData(ctx, driverLocations, trackOutline, trackSectors, tota
   if (raceControlData) {
     for (const e of raceControlData) {
       if (!e.date) continue;
-      const t = ((new Date(e.date).getTime() - raceStart) / raceDuration) * RACE_DURATION_S;
-      if (t < 0 || t > RACE_DURATION_S) continue;
+      const t = ((new Date(e.date).getTime() - raceStart) / raceDuration) * effectiveRaceDurationS;
+      if (t < 0 || t > effectiveRaceDurationS) continue;
       if (e.category === 'Flag' || e.category === 'SafetyCar') {
         events.push({ t, category: e.category, flag: e.flag || null, message: e.message || '', lap: e.lap_number || null });
       }
@@ -237,8 +242,8 @@ function finalizeRaceData(ctx, driverLocations, trackOutline, trackSectors, tota
   for (const lap of ctx.lapsData) {
     const dn = lap.driver_number;
     if (lap.is_pit_out_lap && lap.date_start) {
-      const t = ((new Date(lap.date_start).getTime() - raceStart) / raceDuration) * RACE_DURATION_S;
-      if (t >= 0 && t <= RACE_DURATION_S) {
+      const t = ((new Date(lap.date_start).getTime() - raceStart) / raceDuration) * effectiveRaceDurationS;
+      if (t >= 0 && t <= effectiveRaceDurationS) {
         if (!pitStops[dn]) pitStops[dn] = [];
         pitStops[dn].push({ t, lap: lap.lap_number });
       }
@@ -246,7 +251,7 @@ function finalizeRaceData(ctx, driverLocations, trackOutline, trackSectors, tota
     // Fastest lap: exclude pit out laps and lap 1
     if (lap.lap_duration && lap.lap_number > 1 && !lap.is_pit_out_lap) {
       if (!fastestLap || lap.lap_duration < fastestLap.duration) {
-        const t = lap.date_start ? ((new Date(lap.date_start).getTime() - raceStart) / raceDuration) * RACE_DURATION_S : 0;
+        const t = lap.date_start ? ((new Date(lap.date_start).getTime() - raceStart) / raceDuration) * effectiveRaceDurationS : 0;
         fastestLap = { driverNumber: dn, lap: lap.lap_number, duration: lap.lap_duration, t };
       }
     }
@@ -256,8 +261,8 @@ function finalizeRaceData(ctx, driverLocations, trackOutline, trackSectors, tota
   for (const p of positionData) {
     const dn = p.driver_number;
     if (!driverPositions[dn]) driverPositions[dn] = [];
-    const t = ((new Date(p.date).getTime() - raceStart) / raceDuration) * RACE_DURATION_S;
-    if (t >= 0 && t <= RACE_DURATION_S) {
+    const t = ((new Date(p.date).getTime() - raceStart) / raceDuration) * effectiveRaceDurationS;
+    if (t >= 0 && t <= effectiveRaceDurationS) {
       driverPositions[dn].push({ t, position: p.position });
     }
   }
@@ -299,6 +304,7 @@ function finalizeRaceData(ctx, driverLocations, trackOutline, trackSectors, tota
     pitStops,
     fastestLap,
     stints,
+    raceDurationS: effectiveRaceDurationS,
   };
 }
 

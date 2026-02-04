@@ -474,7 +474,8 @@ function render() {
   }
 
   // Update progress bar
-  const pct = raceFinished ? 100 : Math.min(100, Math.floor(t / 3300 * 100));
+  const raceDurS = (raceData && raceData.raceDurationS) || 3300;
+  const pct = raceFinished ? 100 : Math.min(100, Math.floor(t / raceDurS * 100));
   const pctStr = pct + '%';
   if (progressFillEl.style.width !== pctStr) {
     progressFillEl.style.width = pctStr;

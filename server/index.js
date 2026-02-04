@@ -60,14 +60,14 @@ async function fetchAndCacheRace(session) {
   for (const dn of driverNumbers) {
     console.log(`    Driver ${dn}${dn === outlineDriverNum ? ' (outline)' : ''}...`);
     const raw = await getDriverLocationData(sk, dn);
-    driverLocations[dn] = normalizeDriverLocations(raw, ctx.raceStart, raceDuration);
+    driverLocations[dn] = normalizeDriverLocations(raw, ctx.raceStart, raceDuration, ctx.effectiveRaceDurationS);
     if (dn === outlineDriverNum) outlineDriverRawData = raw;
     // raw is GC-eligible after this iteration (except outline driver)
   }
 
   // Build track outline from the outline driver's raw data
   const { trackOutline, trackSectors, totalLaps, leaderLaps } = buildTrackOutline(
-    outlineDriverRawData, lapsData, outlineDriverNum, ctx.raceStart, raceDuration, driverLocations
+    outlineDriverRawData, lapsData, outlineDriverNum, ctx.raceStart, raceDuration, driverLocations, ctx.effectiveRaceDurationS
   );
   outlineDriverRawData = null; // free memory
 
