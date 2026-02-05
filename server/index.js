@@ -155,18 +155,22 @@ app.listen(PORT, async () => {
     for (const session of shuffled) {
       if (cache.isRejected(session.session_key)) continue;
       const label = `${session.year} ${session.circuit_short_name || session.country_name}`;
-      console.log(`Probing: ${label}...`);
-      const hasData = await probeLocationData(session.session_key);
-      if (!hasData) {
-        console.log('  No location data, rejecting');
-        cache.setRejected(session.session_key);
-        continue;
+      try {
+        console.log(`Probing: ${label}...`);
+        const hasData = await probeLocationData(session.session_key);
+        if (!hasData) {
+          console.log('  No location data, rejecting');
+          cache.setRejected(session.session_key);
+          continue;
+        }
+        console.log('  Fetching...');
+        cachedRace = await fetchAndCacheRace(session);
+        currentRaceKey = session.session_key;
+        console.log(`Bootstrapped: ${cachedRace.title}`);
+        break;
+      } catch (err) {
+        console.error(`  Failed: ${label} - ${err.message}, trying next...`);
       }
-      console.log('  Fetching...');
-      cachedRace = await fetchAndCacheRace(session);
-      currentRaceKey = session.session_key;
-      console.log(`Bootstrapped: ${cachedRace.title}`);
-      break;
     }
   }
 
