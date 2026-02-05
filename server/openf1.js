@@ -2,15 +2,25 @@ const BASE = 'https://api.openf1.org/v1';
 
 async function fetchJson(url, retries = 3) {
   for (let i = 0; i < retries; i++) {
-    const res = await fetch(url);
-    if (res.status === 429) {
-      const wait = (i + 1) * 5000;
-      console.log(`Rate limited, waiting ${wait}ms...`);
-      await new Promise(r => setTimeout(r, wait));
-      continue;
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(60000) });
+      if (res.status === 429) {
+        const wait = (i + 1) * 5000;
+        console.log(`Rate limited, waiting ${wait}ms...`);
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+      if (!res.ok) throw new Error(`OpenF1 error: ${res.status} ${url}`);
+      return res.json();
+    } catch (err) {
+      if (i < retries - 1) {
+        const wait = (i + 1) * 5000;
+        console.log(`Network error (${err.cause?.code || err.message}), retrying in ${wait}ms...`);
+        await new Promise(r => setTimeout(r, wait));
+      } else {
+        throw err;
+      }
     }
-    if (!res.ok) throw new Error(`OpenF1 error: ${res.status} ${url}`);
-    return res.json();
   }
   throw new Error(`Failed after ${retries} retries: ${url}`);
 }
