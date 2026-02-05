@@ -58,38 +58,43 @@ async function loadRace() {
 }
 
 // --- Weather ---
-async function loadLocalWeather() {
-  // First try configured city
-  try {
-    const res = await fetch('/api/weather/local');
-    if (res.ok) {
-      const data = await res.json();
-      localTempEl.textContent = `${data.temp}C`;
-      localCondEl.textContent = data.condition;
-      return;
-    }
-  } catch {}
+const WMO_CODES = {
+  0: 'CLEAR', 1: 'MOSTLY CLEAR', 2: 'PARTLY CLOUDY', 3: 'OVERCAST',
+  45: 'FOG', 48: 'RIME FOG', 51: 'LIGHT DRIZZLE', 53: 'DRIZZLE',
+  55: 'HEAVY DRIZZLE', 56: 'FREEZING DRIZZLE', 57: 'FREEZING DRIZZLE',
+  61: 'LIGHT RAIN', 63: 'RAIN', 65: 'HEAVY RAIN',
+  66: 'FREEZING RAIN', 67: 'FREEZING RAIN', 71: 'LIGHT SNOW',
+  73: 'SNOW', 75: 'HEAVY SNOW', 77: 'SNOW GRAINS',
+  80: 'RAIN SHOWERS', 81: 'RAIN SHOWERS', 82: 'HEAVY SHOWERS',
+  85: 'SNOW SHOWERS', 86: 'SNOW SHOWERS', 95: 'THUNDERSTORM',
+  96: 'THUNDERSTORM+HAIL', 99: 'THUNDERSTORM+HAIL',
+};
 
-  // Fall back to browser geolocation
+async function loadLocalWeather() {
   if (!navigator.geolocation) return;
   navigator.geolocation.getCurrentPosition(async (pos) => {
     try {
-      const res = await fetch(`/api/weather/current?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&current=temperature_2m,weather_code`);
       if (!res.ok) return;
       const data = await res.json();
-      localTempEl.textContent = `${data.temp}C`;
-      localCondEl.textContent = data.condition;
+      const c = data.current;
+      localTempEl.textContent = `${Math.round(c.temperature_2m)}C`;
+      localCondEl.textContent = WMO_CODES[c.weather_code] || 'UNKNOWN';
     } catch {}
   }, () => {});
 }
 
 async function loadRaceWeather() {
+  if (!raceData || !raceData.circuitCoords || !raceData.raceDate) return;
   try {
-    const res = await fetch('/api/weather/race');
+    const { lat, lon } = raceData.circuitCoords;
+    const res = await fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${raceData.raceDate}&end_date=${raceData.raceDate}&daily=temperature_2m_max,temperature_2m_min,weather_code`);
     if (!res.ok) return;
     const data = await res.json();
-    raceTempEl.textContent = `${data.tempHigh}/${data.tempLow}C`;
-    raceCondEl.textContent = data.condition;
+    const d = data.daily;
+    if (!d || !d.temperature_2m_max || !d.temperature_2m_max.length) return;
+    raceTempEl.textContent = `${Math.round(d.temperature_2m_max[0])}/${Math.round(d.temperature_2m_min[0])}C`;
+    raceCondEl.textContent = WMO_CODES[d.weather_code[0]] || 'UNKNOWN';
   } catch {}
 }
 
@@ -286,7 +291,7 @@ function formatWallClock() {
   return `${h12}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')} ${ampm}`;
 }
 
-function drawChequeredFlag(alpha) {
+function drawChequeredFlag(alpha, uiScale) {
   const w = canvas.width;
   const h = canvas.height;
   const sqSize = Math.max(20, Math.min(40, w / 16));
@@ -306,9 +311,9 @@ function drawChequeredFlag(alpha) {
   // "FINISH" text in center
   ctx.globalAlpha = alpha;
   ctx.fillStyle = '#000';
-  ctx.fillRect(w / 2 - 120, h / 2 - 20, 240, 40);
+  ctx.fillRect(w / 2 - 120 * uiScale, h / 2 - 20 * uiScale, 240 * uiScale, 40 * uiScale);
   ctx.fillStyle = '#fff';
-  ctx.font = '18px "Press Start 2P", monospace';
+  ctx.font = `${18 * uiScale}px "Press Start 2P", monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('FINISH', w / 2, h / 2);
@@ -520,12 +525,14 @@ function render() {
     }
   }
 
+  const uiScale = Math.max(1, Math.min(canvas.height, canvas.width) / 700);
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // Chequered flag animation (frames 0-120 after finish)
   if (raceFinished && finishAnimT <= 120) {
     const pulse = 0.15 + 0.15 * Math.sin(finishAnimT * 0.15);
-    drawChequeredFlag(pulse);
+    drawChequeredFlag(pulse, uiScale);
   }
 
   // Draw podium overlay if race is finished
@@ -556,11 +563,11 @@ function render() {
     }
     // Dark border
     ctx.strokeStyle = '#222';
-    ctx.lineWidth = 8;
+    ctx.lineWidth = 8 * uiScale;
     ctx.stroke();
     // Colored sector
     ctx.strokeStyle = color;
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 4 * uiScale;
     ctx.stroke();
   };
 
@@ -597,7 +604,7 @@ function render() {
     const len = Math.sqrt(dx * dx + dy * dy);
     const perpX = -dy / len;
     const perpY = dx / len;
-    const lineLen = 12;
+    const lineLen = 12 * uiScale;
     // Draw checkered start/finish line
     ctx.beginPath();
     ctx.moveTo(p0.sx - perpX * lineLen, p0.sy - perpY * lineLen);
@@ -651,11 +658,11 @@ function render() {
     }
 
     ctx.beginPath();
-    ctx.arc(sp.sx, sp.sy, 5, 0, Math.PI * 2);
+    ctx.arc(sp.sx, sp.sy, 5 * uiScale, 0, Math.PI * 2);
     ctx.fillStyle = ds.info.color;
     ctx.fill();
     ctx.strokeStyle = '#000';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1 * uiScale;
     ctx.stroke();
 
     // Reset shadow
@@ -663,11 +670,11 @@ function render() {
 
     // Label top 3 drivers on the track
     if (ds.racePos <= 3) {
-      ctx.font = '7px "Press Start 2P", monospace';
+      ctx.font = `${7 * uiScale}px "Press Start 2P", monospace`;
       ctx.fillStyle = ds.info.color;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'bottom';
-      ctx.fillText(ds.info.code, sp.sx + 8, sp.sy - 4);
+      ctx.fillText(ds.info.code, sp.sx + 8 * uiScale, sp.sy - 4 * uiScale);
     }
   }
 

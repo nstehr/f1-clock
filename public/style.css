@@ -250,6 +250,53 @@ body {
   border-color: #666;
 }
 
+/* Large screens */
+@media (min-width: 1600px) {
+  #container {
+    grid-template-columns: 1fr 360px;
+  }
+
+  #wall-clock {
+    font-size: 34px;
+  }
+
+  #race-title {
+    font-size: 12px;
+  }
+
+  #race-lap {
+    font-size: 12px;
+  }
+
+  #leaderboard {
+    font-size: 12px;
+    line-height: 2.6;
+  }
+
+  .lb-tire {
+    width: 10px;
+    height: 10px;
+  }
+
+  .tire-dot {
+    width: 10px;
+    height: 10px;
+  }
+
+  .lb-dot {
+    width: 12px;
+    height: 12px;
+  }
+
+  .lb-pos {
+    width: 32px;
+  }
+
+  #tire-legend {
+    font-size: 9px;
+  }
+}
+
 /* Tablet */
 @media (max-width: 900px) {
   #container {

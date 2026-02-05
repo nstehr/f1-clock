@@ -4,11 +4,9 @@ const { getRaceSessions, getDriverLocationData, getDrivers, getPositions, getLap
 const { initRaceContext, normalizeDriverLocations, buildTrackOutline, finalizeRaceData } = require('./normalize');
 const cache = require('./cache');
 const { getCircuitCoords } = require('./circuits');
-const { getCurrentWeather, getHistoricalWeather, geocodeCity } = require('./weather');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const WEATHER_CITY = process.env.WEATHER_CITY || null;
 
 let cachedRace = null;
 let sessions = [];
@@ -72,6 +70,8 @@ async function fetchAndCacheRace(session) {
   outlineDriverRawData = null; // free memory
 
   const raceData = finalizeRaceData(ctx, driverLocations, trackOutline, trackSectors, totalLaps, leaderLaps);
+  const coords = getCircuitCoords(raceData.circuitName);
+  if (coords) raceData.circuitCoords = coords;
   cache.setRace(sk, raceData);
   console.log(`  Done: ${raceData.title}`);
   return raceData;
@@ -134,11 +134,6 @@ async function prefetchLoop() {
   }
 }
 
-// Weather caches
-const weatherCache = { current: null, currentAt: 0, race: null, raceKey: null, local: null, localAt: 0 };
-const CURRENT_WEATHER_TTL = 15 * 60 * 1000; // 15 minutes
-let configuredCityCoords = null;
-
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.get('/api/race', (req, res) => {
@@ -146,79 +141,6 @@ app.get('/api/race', (req, res) => {
     return res.status(503).json({ error: 'No races cached yet, please wait' });
   }
   res.json(cachedRace);
-});
-
-app.get('/api/weather/local', async (req, res) => {
-  if (!WEATHER_CITY) {
-    return res.status(404).json({ configured: false });
-  }
-
-  if (weatherCache.local && Date.now() - weatherCache.localAt < CURRENT_WEATHER_TTL) {
-    return res.json(weatherCache.local);
-  }
-
-  try {
-    if (!configuredCityCoords) {
-      configuredCityCoords = await geocodeCity(WEATHER_CITY);
-      console.log(`Configured weather city: ${configuredCityCoords.name}, ${configuredCityCoords.country}`);
-    }
-    const data = await getCurrentWeather(configuredCityCoords.lat, configuredCityCoords.lon);
-    data.city = configuredCityCoords.name;
-    weatherCache.local = data;
-    weatherCache.localAt = Date.now();
-    res.json(data);
-  } catch (err) {
-    console.error('Local weather error:', err.message);
-    res.status(502).json({ error: 'Failed to fetch weather for configured city' });
-  }
-});
-
-app.get('/api/weather/current', async (req, res) => {
-  const { lat, lon } = req.query;
-  if (!lat || !lon) return res.status(400).json({ error: 'lat and lon required' });
-
-  const key = `${parseFloat(lat).toFixed(2)},${parseFloat(lon).toFixed(2)}`;
-  if (weatherCache.current && weatherCache.currentKey === key && Date.now() - weatherCache.currentAt < CURRENT_WEATHER_TTL) {
-    return res.json(weatherCache.current);
-  }
-
-  try {
-    const data = await getCurrentWeather(lat, lon);
-    weatherCache.current = data;
-    weatherCache.currentKey = key;
-    weatherCache.currentAt = Date.now();
-    res.json(data);
-  } catch (err) {
-    console.error('Weather error:', err.message);
-    res.status(502).json({ error: 'Failed to fetch weather' });
-  }
-});
-
-app.get('/api/weather/race', async (req, res) => {
-  if (!cachedRace || !cachedRace.raceDate || !cachedRace.circuitName) {
-    return res.status(404).json({ error: 'No race data available' });
-  }
-
-  const cacheKey = `${cachedRace.circuitName}:${cachedRace.raceDate}`;
-  if (weatherCache.race && weatherCache.raceKey === cacheKey) {
-    return res.json(weatherCache.race);
-  }
-
-  const coords = getCircuitCoords(cachedRace.circuitName);
-  if (!coords) {
-    return res.status(404).json({ error: `Unknown circuit: ${cachedRace.circuitName}` });
-  }
-
-  try {
-    const data = await getHistoricalWeather(coords.lat, coords.lon, cachedRace.raceDate);
-    if (!data) return res.status(404).json({ error: 'No historical weather data' });
-    weatherCache.race = data;
-    weatherCache.raceKey = cacheKey;
-    res.json(data);
-  } catch (err) {
-    console.error('Historical weather error:', err.message);
-    res.status(502).json({ error: 'Failed to fetch historical weather' });
-  }
 });
 
 app.listen(PORT, async () => {

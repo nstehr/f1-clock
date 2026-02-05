@@ -55,7 +55,9 @@ function initRaceContext(positionData, drivers, lapsData, raceControlData, stint
   }
 
   const raceDurationMs = raceEnd - raceStart;
-  const effectiveRaceDurationS = Math.min(MAX_RACE_DURATION_S, Math.round((raceDurationMs / REFERENCE_RACE_MS) * MAX_RACE_DURATION_S));
+  const isSprint = session.session_name === 'Sprint';
+  const baseEffective = Math.round((raceDurationMs / REFERENCE_RACE_MS) * MAX_RACE_DURATION_S);
+  const effectiveRaceDurationS = Math.min(MAX_RACE_DURATION_S, isSprint ? Math.round(baseEffective * 0.7) : baseEffective);
 
   return { raceStart, raceEnd, effectiveRaceDurationS, positionData, drivers, lapsData, raceControlData, stintsData, session };
 }
@@ -265,6 +267,9 @@ function finalizeRaceData(ctx, driverLocations, trackOutline, trackSectors, tota
     if (t >= 0 && t <= effectiveRaceDurationS) {
       driverPositions[dn].push({ t, position: p.position });
     }
+  }
+  for (const dn of Object.keys(driverPositions)) {
+    driverPositions[dn].sort((a, b) => a.t - b.t);
   }
 
   // Process stint data (tire compounds per driver)
