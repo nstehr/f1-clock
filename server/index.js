@@ -83,6 +83,15 @@ function loadRandomCachedRace() {
   const keys = cache.getCachedRaceKeys();
   if (!keys.length) return false;
 
+  // Allow forcing a specific race via env var (for testing)
+  const forceKey = process.env.FORCE_RACE_KEY ? parseInt(process.env.FORCE_RACE_KEY, 10) : null;
+  if (forceKey && keys.includes(forceKey)) {
+    currentRaceKey = forceKey;
+    cachedRace = cache.getRace(forceKey);
+    console.log(`Forced race from cache: ${cachedRace.title}`);
+    return true;
+  }
+
   let candidates = keys.filter(k => k !== currentRaceKey);
   if (!candidates.length) candidates = keys; // only one race cached
 
