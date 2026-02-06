@@ -1,0 +1,10 @@
+{
+  "name": "f1-historical",
+  "version": "1.0.0",
+  "description": "Generate race animation data for historical F1 races (1996-2022)",
+  "main": "index.js",
+  "scripts": {
+    "generate": "node index.js"
+  },
+  "dependencies": {}
+}
