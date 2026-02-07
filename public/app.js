@@ -144,16 +144,18 @@ function isDriverRetired(driverNum, t) {
   const locs = raceData.locations[driverNum];
   if (!locs || !locs.length) return true;
 
+  const raceDurS = (raceData && raceData.raceDurationS) || 3300;
+  const nearEnd = raceDurS - 100;
   const lastT = locs[locs.length - 1].t;
 
   // If current time is 30+ seconds past their last data point, they've retired
   // But not if they finished (last point near end of race)
-  if (t > lastT + 30 && lastT < 3200) return true;
+  if (t > lastT + 30 && lastT < nearEnd) return true;
 
   // Check if driver is stationary (stuck at same position for 60+ seconds)
   // This catches drivers who stopped but still have telemetry data
   // Only check during the race, not in the final minutes when cars slow down after finish
-  if (t > 60 && t < 3200) {
+  if (t > 60 && t < nearEnd) {
     // Find position at current time
     const currentPos = getDriverPos(driverNum, t);
     // Find position 60 seconds ago
