@@ -42,7 +42,7 @@ const raceTempEl = document.querySelector('#weather-race .weather-temp');
 const raceCondEl = document.querySelector('#weather-race .weather-cond');
 
 async function loadRace() {
-  const res = await fetch('/api/race');
+  const res = await fetch('api/race');
   if (!res.ok) {
     setTimeout(loadRace, 2000);
     return;

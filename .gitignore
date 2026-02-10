@@ -2,3 +2,5 @@ node_modules/
 historical/output/
 historical/circuits-cache.json
 f1cache.db
+.env
+data/

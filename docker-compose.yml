@@ -1,10 +1,40 @@
 services:
+  traefik:
+    image: traefik:v3.3
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - acme-data:/acme
+    networks:
+      - proxy
+
   f1-clock:
     build: .
-    ports:
-      - "3000:3000"
+    restart: unless-stopped
     volumes:
       - ./data:/data
-    restart: unless-stopped
     environment:
       - F1_CACHE_DB=/data/f1cache.db
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      # Main router: serve app under /f1-clock
+      - "traefik.http.routers.f1-clock.rule=Host(`${DOMAIN}`) && PathPrefix(`/f1-clock`)"
+      - "traefik.http.routers.f1-clock.entrypoints=websecure"
+      - "traefik.http.routers.f1-clock.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.f1-clock.middlewares=f1-strip"
+      # Strip /f1-clock prefix before forwarding to Express
+      - "traefik.http.middlewares.f1-strip.stripprefix.prefixes=/f1-clock"
+      - "traefik.http.services.f1-clock.loadbalancer.server.port=3000"
+
+networks:
+  proxy:
+    name: proxy
+
+volumes:
+  acme-data:
