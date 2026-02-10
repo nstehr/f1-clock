@@ -23,8 +23,16 @@ services:
       - proxy
     labels:
       - "traefik.enable=true"
-      # Main router: serve app under /f1-clock
-      - "traefik.http.routers.f1-clock.rule=Host(`${DOMAIN}`) && PathPrefix(`/f1-clock`)"
+      # Redirect /f1-clock to /f1-clock/ (trailing slash) so relative paths resolve correctly
+      - "traefik.http.routers.f1-clock-slash.rule=Host(`${DOMAIN}`) && Path(`/f1-clock`)"
+      - "traefik.http.routers.f1-clock-slash.entrypoints=websecure"
+      - "traefik.http.routers.f1-clock-slash.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.f1-clock-slash.middlewares=f1-addslash"
+      - "traefik.http.middlewares.f1-addslash.redirectregex.regex=^(.*)/f1-clock$$"
+      - "traefik.http.middlewares.f1-addslash.redirectregex.replacement=$${1}/f1-clock/"
+      - "traefik.http.middlewares.f1-addslash.redirectregex.permanent=true"
+      # Main router: serve app under /f1-clock/
+      - "traefik.http.routers.f1-clock.rule=Host(`${DOMAIN}`) && PathPrefix(`/f1-clock/`)"
       - "traefik.http.routers.f1-clock.entrypoints=websecure"
       - "traefik.http.routers.f1-clock.tls.certresolver=letsencrypt"
       - "traefik.http.routers.f1-clock.middlewares=f1-strip"
