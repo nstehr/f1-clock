@@ -29,7 +29,7 @@ async function getRaceSessions() {
   const sessions = [];
   const now = new Date();
   const currentYear = now.getFullYear();
-  for (let year = 2018; year <= currentYear; year++) {
+  for (let year = 2023; year <= currentYear; year++) {
     const data = await fetchJson(`${BASE}/sessions?session_type=Race&year=${year}`);
     sessions.push(...data);
   }
