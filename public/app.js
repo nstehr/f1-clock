@@ -344,7 +344,12 @@ function getTopDrivers(t) {
     results.push({ dn, position: pos, info: raceData.drivers[dn] });
   }
   results.sort((a, b) => a.position - b.position);
-  return results.slice(0, 3);
+  const top3 = results.slice(0, 3);
+  // Assign podium positions by sort order to handle duplicate position values
+  for (let i = 0; i < top3.length; i++) {
+    top3[i].podiumPos = i + 1;
+  }
+  return top3;
 }
 
 function drawPodium(alpha) {
@@ -388,7 +393,7 @@ function drawPodium(alpha) {
   ];
 
   for (const slot of podiumOrder) {
-    const driver = top3.find(d => d.position === slot.pos);
+    const driver = top3.find(d => d.podiumPos === slot.pos);
     if (!driver) continue;
 
     const bh = heights[slot.pos];
